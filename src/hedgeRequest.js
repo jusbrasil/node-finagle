@@ -1,23 +1,24 @@
 import Promise from 'bluebird';
-import { History, Stopwatch } from 'measured';
+import Measured from 'measured';
 
 import type Filter from './index';
 
 type HedgeServiceOptions = {
   percentile: number,
   minMs: number,
-  history: History,
+  history: Measured.Histogram,
   debug: boolean
 };
 
 export function computeHedgeRequestDelay(
-  latencyHistory: History,
+  latencyHistogram: Measured.Histogram,
   options: HedgeServiceOptions
 ): number {
-  const { _count: count } = latencyHistory;
+  const { _count: count } = latencyHistogram;
 
   if (count > 10) {
-    const [latency] = latencyHistory.percentiles([options.percentile]);
+    const p = options.percentile;
+    const latency = latencyHistogram.percentiles([p])[p];
     return Math.max(latency, options.minMs);
   }
 
@@ -37,7 +38,7 @@ export function cancelOthersOnFinish(main: Promise<any>, tied: Promise<any>): bo
 }
 
 export function computeLatency(promise, timer, history) {
-  const compute = () => history.update(timer());
+  const compute = () => history.update(timer.end());
   promise.then(compute, compute);
 }
 
@@ -45,25 +46,25 @@ export default function hedgeRequestFilter<T>(
   options: HedgeServiceOptions,
 ): Filter<T> {
   return (service) => {
-    const latencyHistory = options.history || new History();
+    const latencyHistogram = options.history || new Measured.Histogram();
     return (...input) => {
-      const timer = new Stopwatch();
+      const timer = new Measured.Stopwatch();
 
       const mainRequest = service(...input);
-      computeLatency(mainRequest, timer, latencyHistory);
+      computeLatency(mainRequest, timer, latencyHistogram);
 
       let result = mainRequest;
 
-      const hedgeDelay = computeHedgeRequestDelay(latencyHistory, options);
+      const hedgeDelay = computeHedgeRequestDelay(latencyHistogram, options);
       if (hedgeDelay >= options.minMs) {
-        const hedgeRequest = Promise.delay(hedgeDelay, () => service(...input));
+        const hedgeRequest = Promise.delay(hedgeDelay).then(() => service(...input));
         cancelOthersOnFinish(mainRequest, hedgeRequest);
 
         if (options.debug) {
           // printHedgeServiceDiff(mainRequest, hedgeRequest, timer);
         }
 
-        result = Promise.any(mainRequest, hedgeRequest);
+        result = Promise.any([mainRequest, hedgeRequest]);
       }
 
 
