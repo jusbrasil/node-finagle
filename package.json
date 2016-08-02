@@ -27,6 +27,8 @@
   },
   "homepage": "https://github.com/jusbrasil/smart-promises",
   "dependencies": {
+    "babel-plugin-syntax-flow": "6.8.0",
+    "babel-plugin-transform-flow-strip-types": "6.8.0",
     "bluebird": "^3.4.1",
     "measured": "^1.1.0"
   },
