@@ -27,10 +27,12 @@
   },
   "homepage": "https://github.com/jusbrasil/smart-promises",
   "dependencies": {
+    "CBuffer": "^2.0.0",
     "babel-plugin-syntax-flow": "6.8.0",
     "babel-plugin-transform-flow-strip-types": "6.8.0",
     "bluebird": "^3.4.1",
-    "measured": "^1.1.0"
+    "measured": "^1.1.0",
+    "native-hdr-histogram": "^0.3.3"
   },
   "devDependencies": {
     "babel": "6.5.2",

@@ -7,7 +7,9 @@
   "globals": {
     "Class": true
   },
-  "rules": {},
+  "rules": {
+    "import/prefer-default-export": 0
+  },
   "settings": {
     "flowtype": {
       "onlyFilesWithFlowAnnotation": true
