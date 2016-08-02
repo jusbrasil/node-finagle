@@ -1,4 +1,4 @@
-smart-promises
+node-finagle
 =======================
 
 Proof of concept lib of a finagle-like composable `Service` in node.

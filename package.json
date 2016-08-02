@@ -1,5 +1,5 @@
 {
-  "name": "smart-promises",
+  "name": "node-finagle",
   "version": "0.0.1",
   "description": "node promise playground",
   "main": "lib/index.js",
@@ -20,12 +20,12 @@
   "license": "BSD-2-Clause",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jusbrasil/smart-promises.git"
+    "url": "https://github.com/jusbrasil/node-finagle.git"
   },
   "bugs": {
-    "url": "https://github.com/jusbrasil/smart-promises/issues"
+    "url": "https://github.com/jusbrasil/node-finagle/issues"
   },
-  "homepage": "https://github.com/jusbrasil/smart-promises",
+  "homepage": "https://github.com/jusbrasil/node-finagle",
   "dependencies": {
     "CBuffer": "^2.0.0",
     "babel-plugin-syntax-flow": "6.8.0",
