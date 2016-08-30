@@ -1,3 +1,5 @@
+// @flow
+
 import Promise from 'bluebird';
 import Measured from 'measured';
 
@@ -9,7 +11,8 @@ type HedgeServiceOptions = {
   percentile: number,
   minMs: number,
   histogram: RollingHdrHistogram,
-  debug: boolean
+  histogramOptions?: any,
+  debug?: boolean
 };
 
 export function computeHedgeRequestDelay(
@@ -24,7 +27,7 @@ export function computeHedgeRequestDelay(
   return -1;
 }
 
-export function cancelOthersOnFinish(main: Promise<any>, tied: Promise<any>): boolean {
+export function cancelOthersOnFinish(main: Promise<any>, tied: Promise<any>): void {
   let finished = false;
   const cancel = (p) => {
     if (!finished) {
@@ -36,9 +39,35 @@ export function cancelOthersOnFinish(main: Promise<any>, tied: Promise<any>): bo
   tied.then(() => cancel(main));
 }
 
-export function computeLatency(promise, timer, histogram) {
+export function computeLatency(
+  promise: Promise<any>,
+  timer: Measured.Stopwatch,
+  histogram: RollingHdrHistogram
+) {
   const compute = () => histogram.record(timer.end());
   promise.then(compute, compute);
+}
+
+function printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime) {
+  let endedCount = 0;
+  const latencies = {};
+  const onFinish = (requestKind) => () => {
+    endedCount++;
+
+    const latency = +new Date() - startTime;
+    latencies[requestKind] = latency;
+
+    if (endedCount === 2) {
+      if (requestKind === 'hedge') {
+        console.log('wasted hedge request', latencies);
+      } else {
+        console.log('hedge request saved time:', latencies);
+      }
+    }
+  };
+
+  mainRequest.then(onFinish('main'), onFinish('main'));
+  hedgeRequest.then(onFinish('hedge'), onFinish('hedge'));
 }
 
 export default function hedgeRequestFilter<T>(
@@ -50,6 +79,7 @@ export default function hedgeRequestFilter<T>(
     const latencyHistogram = histogram || new RollingHdrHistogram(histogramOptions || {});
     return (...input) => {
       const timer = new Measured.Stopwatch();
+      const startTime = +(new Date());
 
       const mainRequest = service(...input);
       computeLatency(mainRequest, timer, latencyHistogram);
@@ -62,7 +92,7 @@ export default function hedgeRequestFilter<T>(
         cancelOthersOnFinish(mainRequest, hedgeRequest);
 
         if (debug) {
-          // printHedgeServiceDiff(mainRequest, hedgeRequest, timer);
+          printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime);
         }
 
         result = Promise.any([mainRequest, hedgeRequest]);
