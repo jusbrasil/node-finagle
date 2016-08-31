@@ -44,8 +44,7 @@ export function computeLatency(
   timer: Measured.Stopwatch,
   histogram: RollingHdrHistogram
 ) {
-  const compute = () => histogram.record(timer.end());
-  promise.then(compute, compute);
+  promise.then(() => histogram.record(timer.end()));
 }
 
 function printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime) {
@@ -81,7 +80,7 @@ export default function hedgeRequestFilter<T>(
       const timer = new Measured.Stopwatch();
       const startTime = +(new Date());
 
-      const mainRequest = service(...input);
+      const mainRequest = Promise.resolve(service(...input));
       computeLatency(mainRequest, timer, latencyHistogram);
 
       let result = mainRequest;
@@ -90,6 +89,9 @@ export default function hedgeRequestFilter<T>(
       if (hedgeDelay >= minMs) {
         const hedgeRequest = Promise.delay(hedgeDelay).then(() => service(...input));
         cancelOthersOnFinish(mainRequest, hedgeRequest);
+
+        const hedgeTimer = new Measured.Stopwatch();
+        computeLatency(hedgeRequest, hedgeTimer, latencyHistogram);
 
         if (debug) {
           printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime);
