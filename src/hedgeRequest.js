@@ -50,24 +50,24 @@ export function computeLatency(
 
 function printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime) {
   let endedCount = 0;
-  const latencies = {};
+  const latencies = { hedgeDelay };
   const onFinish = (requestKind) => () => {
     endedCount++;
 
     const latency = +new Date() - startTime;
     latencies[requestKind] = latency;
 
-    if (endedCount === 2) {
+    if (endedCount === 1 && latency > hedgeDelay) {
       if (requestKind === 'hedge') {
-        console.log('wasted hedge request', latencies);
-      } else {
         console.log('hedge request saved time:', latencies);
+      } else {
+        console.log('wasted hedge request', latencies);
       }
     }
   };
 
-  mainRequest.then(onFinish('main'), onFinish('main'));
-  hedgeRequest.then(onFinish('hedge'), onFinish('hedge'));
+  mainRequest.then(onFinish('main'));
+  hedgeRequest.then(onFinish('hedge'));
 }
 
 export default function hedgeRequestFilter<T>(
