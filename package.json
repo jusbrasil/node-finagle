@@ -50,7 +50,7 @@
     "eslint-config-airbnb-base": "4.0.2",
     "eslint-plugin-babel": "3.3.0",
     "eslint-plugin-import": "1.11.0",
-    "flow-bin": "0.26.0",
+    "flow-bin": "^0.30.0",
     "istanbul": "0.4.3",
     "mocha": "2.4.5",
     "mockery": "1.6.2",
