@@ -24,15 +24,18 @@ Ideally it should be built on top of proved libraries like `dataloader`, `bluebi
 Idea:
 ```js
 
-val serviceBuilder = ServiceBuilder.create()
-  .andThen(batching)
-  .andThen(circuitBreaker({ requiredSuccessRate: 0.90, markDeadSeconds: 5 })),
-  .andThen(forkJoin.list({ minBatchSize: 10 })),
-  .andThen(hedgeRequest({ percentile: 95, minMs: 5 })),
-  .andThen(connectionPooling(pool))
+val filterStack = (
+  FilterStack
+    .prepare()
+    .andThen(batching)
+    .andThen(circuitBreaker({ requiredSuccessRate: 0.90, markDeadSeconds: 5 })),
+    .andThen(forkJoin.list({ minBatchSize: 10 })),
+    .andThen(hedgeRequest({ percentile: 95, minMs: 5 })),
+    .andThen(connectionPooling(pool))
+);
 
-val loader = serviceBuilder((client, batch) => {
-  client.doSomething(batch);
+val loader = filterStack.build(({ client, args }) => {
+  client.doSomething(args);
 });
 
 const x = loader(1);

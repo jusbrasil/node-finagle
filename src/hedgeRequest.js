@@ -5,11 +5,12 @@ import Measured from 'measured';
 
 import { RollingHdrHistogram } from './utils/hdr-histogram';
 
-import type Filter from './index';
+import type { Filter, Service } from './index';
 
 type HedgeServiceOptions = {
   percentile: number,
   minMs: number,
+  maxObservableMs: number,
   histogram: RollingHdrHistogram,
   histogramOptions?: any,
   debug?: boolean
@@ -42,14 +43,20 @@ export function cancelOthersOnFinish(main: Promise<any>, tied: Promise<any>): vo
 export function computeLatency(
   promise: Promise<any>,
   timer: Measured.Stopwatch,
-  histogram: RollingHdrHistogram
+  histogram: RollingHdrHistogram,
+  maxObservableMs: number
 ) {
-  promise.then(() => histogram.record(timer.end()));
+  promise.then(() => {
+    const latency = timer.end();
+    if (latency < maxObservableMs) {
+      histogram.record(latency);
+    }
+  });
 }
 
 function printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime) {
   let endedCount = 0;
-  const latencies = { hedgeDelay };
+  const latencies: any = { hedgeDelay };
   const onFinish = (requestKind) => () => {
     endedCount++;
 
@@ -58,8 +65,10 @@ function printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime)
 
     if (endedCount === 1 && latency > hedgeDelay) {
       if (requestKind === 'hedge') {
+        // eslint-disable-next-line no-console
         console.log('hedge request saved time:', latencies);
       } else {
+        // eslint-disable-next-line no-console
         console.log('wasted hedge request', latencies);
       }
     }
@@ -69,29 +78,29 @@ function printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime)
   hedgeRequest.then(onFinish('hedge'));
 }
 
-export default function hedgeRequestFilter<T>(
+export default function hedgeRequestFilter<Req, Rep>(
   options: HedgeServiceOptions,
-): Filter<T> {
-  const { histogram, histogramOptions, minMs, debug } = options;
+): Filter<Req, Req, Rep, Rep> {
+  const { histogram, histogramOptions, minMs, debug, maxObservableMs = 1000 } = options;
 
-  return (service) => {
+  return (service: Service<Req, Rep>) => {
     const latencyHistogram = histogram || new RollingHdrHistogram(histogramOptions || {});
-    return (...input) => {
+    return (input: Req) => {
       const timer = new Measured.Stopwatch();
       const startTime = +(new Date());
 
-      const mainRequest = Promise.resolve(service(...input));
-      computeLatency(mainRequest, timer, latencyHistogram);
+      const mainRequest = Promise.resolve(service(input));
+      computeLatency(mainRequest, timer, latencyHistogram, maxObservableMs);
 
       let result = mainRequest;
 
       const hedgeDelay = computeHedgeRequestDelay(latencyHistogram, options);
       if (hedgeDelay >= minMs) {
-        const hedgeRequest = Promise.delay(hedgeDelay).then(() => service(...input));
+        const hedgeRequest = Promise.delay(hedgeDelay).then(() => service(input));
         cancelOthersOnFinish(mainRequest, hedgeRequest);
 
         const hedgeTimer = new Measured.Stopwatch();
-        computeLatency(hedgeRequest, hedgeTimer, latencyHistogram);
+        computeLatency(hedgeRequest, hedgeTimer, latencyHistogram, maxObservableMs);
 
         if (debug) {
           printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime);

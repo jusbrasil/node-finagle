@@ -1,3 +1,5 @@
+// @flow
+
 import Histogram from 'native-hdr-histogram';
 import CBuffer from 'CBuffer';
 
