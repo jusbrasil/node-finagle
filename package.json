@@ -1,6 +1,6 @@
 {
   "name": "node-finagle",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "node promise playground",
   "main": "lib/index.js",
   "directories": {
@@ -27,12 +27,12 @@
   },
   "homepage": "https://github.com/jusbrasil/node-finagle",
   "dependencies": {
-    "CBuffer": "^2.0.0",
+    "CBuffer": "2.0.0",
     "babel-plugin-syntax-flow": "6.8.0",
     "babel-plugin-transform-flow-strip-types": "6.8.0",
-    "bluebird": "^3.4.1",
-    "measured": "^1.1.0",
-    "native-hdr-histogram": "^0.3.3"
+    "bluebird": "3.4.1",
+    "measured": "1.1.0",
+    "native-hdr-histogram": "0.3.3"
   },
   "devDependencies": {
     "babel": "6.5.2",
@@ -50,7 +50,7 @@
     "eslint-config-airbnb-base": "4.0.2",
     "eslint-plugin-babel": "3.3.0",
     "eslint-plugin-import": "1.11.0",
-    "flow-bin": "^0.30.0",
+    "flow-bin": "0.33.0",
     "istanbul": "0.4.3",
     "mocha": "2.4.5",
     "mockery": "1.6.2",
@@ -65,5 +65,8 @@
       "**/__tests__/*.js",
       "**/__mocks__/*.js"
     ]
+  },
+  "publishConfig": {
+    "registry": "https://repo.jusbrasil.com.br/content/repositories/npm-internal/"
   }
 }
