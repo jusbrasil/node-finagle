@@ -3,31 +3,49 @@
 import Histogram from 'native-hdr-histogram';
 import CBuffer from 'CBuffer';
 
-const createHistogram = ({ lowest, max, figures }) => (
-  new Histogram(
-    lowest || 1,
-    max || 1000,
-    figures || 3
-  )
-);
+type HistogramOptions = {
+  lowest?: number,
+  max?: number,
+  figures?: number
+};
+
+type RollingHdrHistogramInput = {
+  windowMs?: number,
+  buckets?: number,
+  options?: HistogramOptions
+}
 
 export class RollingHdrHistogram {
+  buffer: CBuffer<Histogram>;
+  bufferTime: number;
+
+  histogramSnapshot: Histogram;
+  snapshotTime: number;
+  options: HistogramOptions;
+
   constructor({
+    options,
     windowMs = 90000,
     buckets = 3,
-    options = {},
-  }) {
-    this.buffer = new CBuffer(buckets);
-    this.bufferTime = windowMs / buckets;
+  }: RollingHdrHistogramInput) {
+    this.options = options || {};
     this.histogramSnapshot = null;
     this.snapshotTime = +new Date();
-
-    this.createHistogram = () => createHistogram(options);
-
+    this.bufferTime = windowMs / buckets;
+    this.buffer = new CBuffer(buckets);
     this.buffer.fill(this.createHistogram);
   }
 
-  record(value) {
+  createHistogram(): Histogram {
+    const { lowest, max, figures } = this.options;
+    return new Histogram(
+      lowest || 1,
+      max || 1000,
+      figures || 3
+    );
+  }
+
+  record(value: number) {
     const time = +new Date();
     if (this.snapshotTime + this.bufferTime < time) {
       this.snapshotTime = time;
@@ -42,7 +60,7 @@ export class RollingHdrHistogram {
     return this.histogramSnapshot !== null;
   }
 
-  percentile(p) {
+  percentile(p: number) {
     return this.histogramSnapshot.percentile(p);
   }
 }
