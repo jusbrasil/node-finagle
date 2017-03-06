@@ -5,8 +5,8 @@ import type { Filter, Service } from './index';
 type ScatherGathererOptions<Req, Rep> = {
   maxItems: number,
   maxBuckets: number,
-  fork: (items: Array<Req>, maxItemsHint: number) => Array<Array<Req>>,
-  join: (items: Array<Promise<Array<Rep>>>) => Promise<Array<Rep>>
+  fork?: (items: Array<Req>, maxItemsHint: number) => Array<Array<Req>>,
+  join?: (items: Array<Promise<Array<Rep>>>) => Promise<Array<Rep>>
 };
 
 function forkList<Req>(
@@ -36,20 +36,24 @@ function joinPromisesList<Rep>(promises: Array<Promise<Array<Rep>>>): Promise<Ar
   );
 }
 
-export default function forkJoinService<Req, Rep>(
+export default function forkJoinFilter<Req, Rep>(
   options: ScatherGathererOptions<Req, Rep>
-): Filter<Req[], Req[], Rep[], Rep[]> {
+): Filter<Array<Req>, Array<Req>, Array<Rep>, Array<Rep>> {
   const fork = options.fork || forkList;
   const join = options.join || joinPromisesList;
   const { maxItems, maxBuckets } = options;
 
-  return (service: Service<Req[], Rep[]>) => (inputs: Req[]) => {
+  return (service: Service<Array<Req>, Array<Rep>>) => (inputs: Array<Req>) => {
     const inputsPerBucket =
       maxBuckets
         ? Math.max(maxItems, Math.floor(inputs.length / maxBuckets))
         : maxItems;
 
+    if (inputsPerBucket < maxItems) {
+      return service(inputs);
+    }
+
     const groups = fork(inputs, inputsPerBucket);
-    return join(groups.map(service));
+    return join(groups.map(g => service(g)));
   };
 }

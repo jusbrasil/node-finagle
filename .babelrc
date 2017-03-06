@@ -3,6 +3,7 @@
   "plugins": [
     "add-module-exports",
     "syntax-flow",
-    "transform-flow-strip-types"
+    "transform-flow-strip-types",
+    "transform-export-extensions"
   ]
 }

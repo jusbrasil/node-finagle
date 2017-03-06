@@ -7,17 +7,24 @@ import { RollingHdrHistogram } from './utils/hdr-histogram';
 
 import type { Filter, Service } from './index';
 
-type HedgeServiceOptions = {
+type Stat<Req> = {
+  countHedgeTiedRequestFaster: (req: Req) => void,
+  countHedgeOriginalRequestFaster: (req: Req) => void,
+  observeHedgeOriginalRequestLatency: (ms: number, req: Req) => void,
+  observeHedgeTiedRequestLatency: (ms: number, req: Req) => void,
+};
+
+type HedgeServiceOptions<Req> = {
   percentile: number,
   minMs: number,
   histogram?: RollingHdrHistogram,
-  histogramOptions?: any,
-  debug?: boolean
+  histogramOptions?: Object,
+  stats?: Stat<Req>,
 };
 
 export function computeHedgeRequestDelay(
   latencyHistogram: RollingHdrHistogram,
-  options: HedgeServiceOptions
+  options: HedgeServiceOptions<any>
 ): number {
   if (latencyHistogram.hasEnoughData()) {
     const latency = latencyHistogram.percentile(options.percentile);
@@ -29,43 +36,51 @@ export function computeHedgeRequestDelay(
 
 export function cancelOthersOnFinish(main: Promise<any>, tied: Promise<any>): void {
   let finished = false;
-  const cancel = (p) => {
-    if (!finished) {
-      p.cancel();
-      finished = true;
-    }
-  };
-  main.then(() => cancel(tied));
-  tied.then(() => cancel(main));
+  main.then(() => (!finished ? tied.cancel() : {}));
+  tied.then(() => { finished = true; });
 }
 
 export function computeLatency(
   promise: Promise<any>,
   timer: Measured.Stopwatch,
   histogram: RollingHdrHistogram,
+  delay: number = 0
 ) {
   promise.then(() => {
     const latency = timer.end();
-    histogram.record(latency);
+    histogram.record(latency - delay);
   });
 }
 
-function printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime) {
+function registerRequestStat<Req>(
+  input: Req,
+  mainRequest: Promise<any>,
+  hedgeRequest: Promise<any>,
+  hedgeDelay: number,
+  startTime: number,
+  stats: Stat<Req>
+) {
   let endedCount = 0;
-  const latencies: any = { hedgeDelay };
   const onFinish = (requestKind) => () => {
     endedCount++;
 
-    const latency = +new Date() - startTime;
-    latencies[requestKind] = latency;
+    const latency = Date.now() - startTime;
 
-    if (endedCount === 1 && latency > hedgeDelay) {
+    if (latency < hedgeDelay) {
+      return;
+    }
+
+    if (requestKind === 'hedge') {
+      stats.observeHedgeTiedRequestLatency(latency, input);
+    } else {
+      stats.observeHedgeOriginalRequestLatency(latency, input);
+    }
+
+    if (endedCount === 1) {
       if (requestKind === 'hedge') {
-        // eslint-disable-next-line no-console
-        console.log('hedge request saved time:', latencies);
+        stats.countHedgeTiedRequestFaster(input);
       } else {
-        // eslint-disable-next-line no-console
-        console.log('wasted hedge request', latencies);
+        stats.countHedgeOriginalRequestFaster(input);
       }
     }
   };
@@ -75,20 +90,20 @@ function printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime)
 }
 
 export default function hedgeRequestFilter<Req, Rep>(
-  options: HedgeServiceOptions,
+  options: HedgeServiceOptions<Req>,
 ): Filter<Req, Req, Rep, Rep> {
   const {
     histogram,
     histogramOptions,
-    debug,
     minMs,
+    stats,
   } = options;
 
   return (service: Service<Req, Rep>) => {
     const latencyHistogram = histogram || new RollingHdrHistogram(histogramOptions || {});
     return (input: Req) => {
       const timer = new Measured.Stopwatch();
-      const startTime = +(new Date());
+      const startTime = Date.now();
 
       const mainRequest = Promise.resolve(service(input));
       computeLatency(mainRequest, timer, latencyHistogram);
@@ -101,10 +116,10 @@ export default function hedgeRequestFilter<Req, Rep>(
         cancelOthersOnFinish(mainRequest, hedgeRequest);
 
         const hedgeTimer = new Measured.Stopwatch();
-        computeLatency(hedgeRequest, hedgeTimer, latencyHistogram);
+        computeLatency(hedgeRequest, hedgeTimer, latencyHistogram, hedgeDelay);
 
-        if (debug) {
-          printHedgeServiceDiff(mainRequest, hedgeRequest, hedgeDelay, startTime);
+        if (stats) {
+          registerRequestStat(input, mainRequest, hedgeRequest, hedgeDelay, startTime, stats);
         }
 
         result = Promise.any([mainRequest, hedgeRequest]);

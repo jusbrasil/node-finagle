@@ -33,7 +33,7 @@ export class RollingHdrHistogram {
     this.snapshotTime = +new Date();
     this.bufferTime = windowMs / buckets;
     this.buffer = new CBuffer(buckets);
-    this.buffer.fill(this.createHistogram);
+    this.buffer.fill(() => this.createHistogram());
   }
 
   createHistogram(): Histogram {

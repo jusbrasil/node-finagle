@@ -1,5 +1,12 @@
 // @flow
 
+export batchingFilter from './batching';
+export circuitBreakerFilter from './circuit-breaker';
+export cachingFilter from './caching';
+export dedupFilter from './dedup';
+export forkJoinFilter from './fork-join';
+export hedgeRequestFilter from './hedge-request';
+
 export type Service<Req, Rep> = (input: Req) => Promise<Rep>;
 
 export type Filter<ReqOut, ReqIn, RepIn, RepOut> =

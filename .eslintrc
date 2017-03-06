@@ -14,5 +14,8 @@
     "flowtype": {
       "onlyFilesWithFlowAnnotation": true
     }
+  },
+  "env": {
+    "jest": true
   }
 }
