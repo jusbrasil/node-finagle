@@ -1,18 +1,18 @@
 // @flow
 
-export batchingFilter from './batching';
-export circuitBreakerFilter from './circuit-breaker';
-export cachingFilter from './caching';
-export dedupFilter from './dedup';
-export forkJoinFilter from './fork-join';
-export hedgeRequestFilter from './hedge-request';
+import batchingFilter from './batching';
+import circuitBreakerFilter from './circuit-breaker';
+import cachingFilter from './caching';
+import dedupFilter from './dedup';
+import forkJoinFilter from './fork-join';
+import hedgeRequestFilter from './hedge-request';
 
 export type Service<Req, Rep> = (input: Req) => Promise<Rep>;
 
 export type Filter<ReqOut, ReqIn, RepIn, RepOut> =
   (service: Service<ReqIn, RepIn>) => Service<ReqOut, RepOut>;
 
-export class FilterStack<ReqOut, ReqIn, RepIn, RepOut> {
+class FilterStack<ReqOut, ReqIn, RepIn, RepOut> {
   static prepare(): FilterStack<any, any, any, any> {
     return new FilterStack(service => service);
   }
@@ -31,3 +31,13 @@ export class FilterStack<ReqOut, ReqIn, RepIn, RepOut> {
     );
   }
 }
+
+export default {
+  batchingFilter,
+  circuitBreakerFilter,
+  cachingFilter,
+  dedupFilter,
+  forkJoinFilter,
+  hedgeRequestFilter,
+  FilterStack,
+};
