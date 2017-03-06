@@ -1,7 +1,7 @@
 node-finagle
 =======================
 
-Proof of concept lib of a finagle-like composable `Service` in node.
+Proof of concept lib of a finagle-like composable `Service`/`Filter` in node.
 
 A `Service` is basically a function `(input) => Promise<output>`
 
@@ -15,7 +15,6 @@ Things to support in mind:
 - Batch fork-join
 - Retry
 - Hedging requests ([more info](https://blog.acolyer.org/2015/01/15/the-tail-at-scale/))
-- Connection pooling
 
 
 Ideally it should be built on top of proved libraries like `dataloader`, `bluebird` and `generic-pool`
@@ -27,20 +26,18 @@ Idea:
 val filterStack = (
   FilterStack
     .prepare()
-    .andThen(batching)
-    .andThen(circuitBreaker({ requiredSuccessRate: 0.90, markDeadSeconds: 5 })),
-    .andThen(forkJoin.list({ minBatchSize: 10 })),
-    .andThen(hedgeRequest({ percentile: 95, minMs: 5 })),
-    .andThen(connectionPooling(pool))
+    .andThen(circuitBreaker(/* options */)),
+    .andThen(caching(/* options */))
+    .andThen(batching(/* options */))
+    .andThen(dedup(/* options */))
+    .andThen(forkJoin(/* options */)),
+    .andThen(hedgeRequest(/* options */)),
 );
 
-val loader = filterStack.build(({ client, args }) => {
-  client.doSomething(args);
-});
+val loader = filterStack.build((req) => client.loadMany(req.ids));
 
 const x = loader(1);
 const y = loader(2);
-
 ```
 
 
