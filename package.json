@@ -1,7 +1,7 @@
 {
   "name": "node-finagle",
   "version": "0.2.0",
-  "description": "node promise finagle service filter playground",
+  "description": "Proof of concept lib for creating composable services/filters in node",
   "main": "lib/index.js",
   "directories": {
     "lib": "lib/"
@@ -61,8 +61,5 @@
       ".*": "./node_modules/babel-jest"
     },
     "setupTestFrameworkScriptFile": "./setup-test.js"
-  },
-  "publishConfig": {
-    "registry": "https://repo.jusbrasil.com.br/content/repositories/npm-internal/"
   }
 }
