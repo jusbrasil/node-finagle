@@ -19,7 +19,7 @@ export default function circuitBreakerFilter<Req, Rep>(
   options: CircuitBreakerOptions<Req>,
 ): Filter<Req, Req, Rep, Rep> {
   const {
-    breaker = new CircuitBreaker(),
+    breaker = new CircuitBreaker(options),
     stats,
   } = options;
 
