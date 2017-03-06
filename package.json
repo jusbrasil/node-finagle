@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "babel --stage 0 src --out-dir lib",
+    "prepublish": "npm run build",
     "flow": "flow check src/",
     "lint": "eslint --ext .js src",
     "test": "jest",
