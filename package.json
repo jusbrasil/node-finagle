@@ -60,6 +60,7 @@
     "transform": {
       ".*": "./node_modules/babel-jest"
     },
-    "setupTestFrameworkScriptFile": "./setup-test.js"
+    "setupTestFrameworkScriptFile": "./setup-test.js",
+    "roots": ["src"]
   }
 }
