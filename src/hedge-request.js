@@ -34,12 +34,6 @@ export function computeHedgeRequestDelay(
   return -1;
 }
 
-export function cancelOthersOnFinish(main: Promise<any>, tied: Promise<any>): void {
-  let finished = false;
-  main.then(() => (!finished ? tied.cancel() : {}));
-  tied.then(() => { finished = true; });
-}
-
 export function computeLatency(
   promise: Promise<any>,
   timer: Measured.Stopwatch,
@@ -89,6 +83,24 @@ function registerRequestStat<Req>(
   hedgeRequest.then(onFinish('hedge'));
 }
 
+function createHeadgeRequest<Req, Rep>(
+  originalPromise: Promise<Rep>,
+  delay: number,
+  service: Service<Req, Rep>,
+  input: Req
+): Promise<Rep> {
+  let aborted = false;
+  const onOriginalFinish = () => { aborted = true; };
+  originalPromise.then(onOriginalFinish, onOriginalFinish);
+
+  return new Promise((resolve) => {
+    const executeHedgeRequest = () => {
+      if (!aborted) resolve(service(input));
+    };
+    setTimeout(executeHedgeRequest, delay);
+  });
+}
+
 export default function hedgeRequestFilter<Req, Rep>(
   options: HedgeServiceOptions<Req>,
 ): Filter<Req, Req, Rep, Rep> {
@@ -112,8 +124,7 @@ export default function hedgeRequestFilter<Req, Rep>(
 
       const hedgeDelay = computeHedgeRequestDelay(latencyHistogram, options);
       if (hedgeDelay >= minMs) {
-        const hedgeRequest = Promise.delay(hedgeDelay).then(() => service(input));
-        cancelOthersOnFinish(mainRequest, hedgeRequest);
+        const hedgeRequest = createHeadgeRequest(mainRequest, hedgeDelay, service, input);
 
         const hedgeTimer = new Measured.Stopwatch();
         computeLatency(hedgeRequest, hedgeTimer, latencyHistogram, hedgeDelay);
