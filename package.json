@@ -1,6 +1,6 @@
 {
   "name": "node-finagle",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Proof of concept lib for creating composable services/filters in node",
   "main": "lib/index.js",
   "directories": {
@@ -61,6 +61,8 @@
       ".*": "./node_modules/babel-jest"
     },
     "setupTestFrameworkScriptFile": "./setup-test.js",
-    "roots": ["src"]
+    "roots": [
+      "src"
+    ]
   }
 }
