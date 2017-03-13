@@ -7,6 +7,7 @@ import type { Filter, Service } from './index';
 
 type CircuitBreakerOptions<Req> = {
   breaker?: Object,
+  isFailure?: (ex: Error) => boolean,
   stats?: {
     countCircuitOpen: (req: Req) => void,
     countCircuitClose: (req: Req) => void,
@@ -19,6 +20,7 @@ export default function circuitBreakerFilter<Req, Rep>(
   options: CircuitBreakerOptions<Req>,
 ): Filter<Req, Req, Rep, Rep> {
   const {
+    isFailure = () => true,
     breaker = new CircuitBreaker(options),
     stats,
   } = options;
@@ -28,7 +30,13 @@ export default function circuitBreakerFilter<Req, Rep>(
       const cmd = (success, failure) => {
         const promise = service(input);
         promise.then(resolve, reject);
-        promise.then(success, failure);
+        promise.then(success, (ex) => {
+          if (isFailure(ex)) {
+            failure();
+          } else {
+            success();
+          }
+        });
         if (stats) stats.countCircuitClose(input);
       };
 
