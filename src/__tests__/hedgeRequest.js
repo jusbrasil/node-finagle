@@ -11,13 +11,48 @@ describe('hedgeRequest filter', () => {
     expect(call[0] - expectedTime).toBeLessThanOrEqual(threshold);
   };
 
-  it('should hedgeRequest requests with default options', async () => {
-    const histogram: any = {
-      hasEnoughData: () => true,
-      percentile: jest.fn(() => 250),
-      record: jest.fn(),
-    };
+  const histogram: any = {
+    hasEnoughData: () => true,
+    percentile: jest.fn(() => 250),
+    record: jest.fn(),
+  };
 
+  it('should throw original error in case of both fail', async () => {
+    const baseService = jest.fn();
+    const finalService = hedgeRequestFilter({
+      histogram,
+      percentile: 90,
+      minMs: 10,
+    })(baseService);
+
+    const firstError = Error('error-1');
+    const secondError = Error('error-2');
+    baseService.mockImplementationOnce(() => Promise.reject(firstError));
+    baseService.mockImplementationOnce(() => Promise.reject(secondError));
+
+    try { await finalService('r1'); } catch (ex) {
+      expect(ex).toEqual(firstError);
+    }
+  });
+
+  it('should fail imediatelly in case of failure', async () => {
+    const baseService = jest.fn();
+    const finalService = hedgeRequestFilter({
+      histogram,
+      percentile: 90,
+      minMs: 10,
+    })(baseService);
+
+    const firstError = Error('error-1');
+    baseService.mockImplementationOnce(() => Promise.reject(firstError));
+    baseService.mockImplementationOnce((i) => Promise.resolve(`${i}!`));
+
+    try { await finalService('r1'); } catch (ex) {
+      expect(ex).toEqual(firstError);
+    }
+  });
+
+  it('should hedgeRequest requests with default options', async () => {
     const baseService = jest.fn();
     const finalService = hedgeRequestFilter({
       histogram,

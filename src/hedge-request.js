@@ -133,7 +133,11 @@ export default function hedgeRequestFilter<Req, Rep>(
           registerRequestStat(input, mainRequest, hedgeRequest, hedgeDelay, startTime, stats);
         }
 
-        result = Promise.any([mainRequest, hedgeRequest]);
+        result = (
+          Promise
+            .race([mainRequest, hedgeRequest])
+            .catch(Promise.AggregateError, () => mainRequest)
+        );
       }
 
       return result;
