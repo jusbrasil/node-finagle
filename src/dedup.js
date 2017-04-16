@@ -40,7 +40,12 @@ export default function dedupFilter<Req, Rep>(
 
       return service(uniqueInputs).then(responses => {
         if (responses.length !== uniqueInputs.length) {
-          const info = JSON.stringify({ uniqueInputs });
+          let info = '';
+          try {
+            info = JSON.stringify({ uniqueInputs });
+          } catch (ex) {
+            info = `${uniqueInputs}`
+          }
           throw new Error(`Server did not return all requested: ${info}`);
         }
 
