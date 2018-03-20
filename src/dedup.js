@@ -42,7 +42,7 @@ export default function dedupFilter<Req, Rep>(
         if (responses.length !== uniqueInputs.length) {
           let info = '';
           try {
-            info = JSON.stringify({ uniqueInputs });
+            info = JSON.stringify({ hashs: uniqueInputs.map(hash) });
           } catch (ex) {
             info = `${uniqueInputs}`
           }
