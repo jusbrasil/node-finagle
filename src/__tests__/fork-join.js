@@ -19,7 +19,7 @@ describe('batching filter', () => {
     expect(baseService).toHaveBeenCalledWith([10]);
   });
 
-  it('should not fork when less the max items per bucket', async () => {
+  it('should not fork when less than the max items per bucket', async () => {
     const baseService = jest.fn(
       (items) => Promise.resolve(items.map(i => `${i}!`))
     );
@@ -32,17 +32,17 @@ describe('batching filter', () => {
     expect(baseService).toHaveBeenCalledWith([1, 2, 3, 4]);
   });
 
-  it('should not fork more then max buckets', async () => {
+  it('should not fork more than max buckets', async () => {
     const baseService = jest.fn(
       (items) => Promise.resolve(items.map(i => `${i}!`))
     );
 
     const finalService = forkJoinFilter({ maxItems: 3, maxBuckets: 2 })(baseService);
-    const result = await finalService([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    expect(result).toEqual(['1!', '2!', '3!', '4!', '5!', '6!', '7!', '8!', '9!', '10!']);
+    const result = await finalService([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(result).toEqual(['1!', '2!', '3!', '4!', '5!', '6!', '7!', '8!', '9!', '10!', '11!']);
 
     expect(baseService).toHaveBeenCalledTimes(2);
-    expect(baseService).toHaveBeenCalledWith([1, 2, 3, 4, 5]);
-    expect(baseService).toHaveBeenCalledWith([6, 7, 8, 9, 10]);
+    expect(baseService).toHaveBeenCalledWith([1, 2, 3, 4, 5, 6]);
+    expect(baseService).toHaveBeenCalledWith([7, 8, 9, 10, 11]);
   });
 });

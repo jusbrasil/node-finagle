@@ -46,7 +46,7 @@ export default function forkJoinFilter<Req, Rep>(
   return (service: Service<Array<Req>, Array<Rep>>) => (inputs: Array<Req>) => {
     const inputsPerBucket =
       maxBuckets
-        ? Math.max(maxItems, Math.floor(inputs.length / maxBuckets))
+        ? Math.max(maxItems, Math.ceil(inputs.length / maxBuckets))
         : maxItems;
 
     if (inputsPerBucket < maxItems) {
