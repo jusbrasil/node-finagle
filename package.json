@@ -30,7 +30,7 @@
     "dataloader": "^1.2.0",
     "make-error": "^1.2.1",
     "measured": "^1.1.0",
-    "native-hdr-histogram": "^0.4.4",
+    "native-hdr-histogram": "^0.7.0",
     "lodash": "^4.16.4"
   },
   "peerDependencies": {
